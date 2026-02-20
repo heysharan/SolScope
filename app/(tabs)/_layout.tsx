@@ -23,6 +23,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="swap"
+        options={{
+          title: "Swap",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="swap-horizontal" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

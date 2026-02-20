@@ -1,20 +1,30 @@
-import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from "react-native-safe-area-context"
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-
-const RPC = "https://api.mainnet-beta.solana.com"
+const RPC = "https://api.mainnet-beta.solana.com";
 
 const rpc = async (method: string, params: any[]) => {
   const res = await fetch(RPC, {
     method: "POST",
-    headers: { "Content-Type": "application/json"},
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params}),
-  })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
   const json = await res.json();
-  if(json.error) throw new Error(json.error.message);
+  if (json.error) throw new Error(json.error.message);
   return json.result;
-}
+};
 
 const getBalance = async (addr: string) => {
   const result = await rpc("getBalance", [addr]);
@@ -32,7 +42,7 @@ const getTokens = async (addr: string) => {
       mint: a.account.data.parsed.info.mint,
       amount: a.account.data.parsed.info.tokenAmount.uiAmount,
     }))
-    .filter((t: any) => t.amount > 0)
+    .filter((t: any) => t.amount > 0);
 };
 
 const getTxns = async (addr: string) => {
@@ -40,19 +50,19 @@ const getTxns = async (addr: string) => {
   return sigs.map((s: any) => ({
     sig: s.signature,
     time: s.blockTime,
-    ok: !s.err
+    ok: !s.err,
   }));
 };
 
-const short = (s: string, n = 4) => `${s.slice(0, n)}...${s.slice(-n)}`
+const short = (s: string, n = 4) => `${s.slice(0, n)}...${s.slice(-n)}`;
 
 const timeAgo = (ts: number) => {
   const s = Math.floor(Date.now() / 1000 - ts);
-  if (s < 60) return `${s}s ago`
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
-  return `${Math.floor(s / 86400)}d ago`
-}
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+};
 
 export default function WalletScreen() {
   const [address, setAddress] = useState("");
@@ -60,11 +70,11 @@ export default function WalletScreen() {
   const [balance, setBalance] = useState<number | null>(null);
   const [tokens, setTokens] = useState<any[]>([]);
   const [txns, setTxns] = useState<any[]>([]);
-  
+
   const search = async () => {
     const addr = address.trim();
     setLoading(true);
-    try{
+    try {
       const [bal, tok, tx] = await Promise.all([
         getBalance(addr),
         getTokens(addr),
@@ -73,29 +83,29 @@ export default function WalletScreen() {
       setBalance(bal);
       setTokens(tok);
       setTxns(tx);
-    }catch(e: any){
-      Alert.alert("Error", e.message)
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
     }
     setLoading(false);
-  }
+  };
 
   const tryExample = () => {
     setAddress("86xCnPeV69n6t3DnyGvkKobf9FdN2H9oiVDdaMpo2MMY");
-  }; 
-  
+  };
+
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView style={s.scroll}>
         <Text style={s.title}>SolScan</Text>
         <Text style={s.subtitle}>Explore any Solana Wallet</Text>
         <View style={s.inputContainer}>
-          <TextInput 
+          <TextInput
             style={s.input}
-            placeholder='Solana Wallet Address...'
+            placeholder="Solana Wallet Address..."
             placeholderTextColor="#6B7280"
             value={address}
             onChangeText={setAddress}
-            autoCapitalize='none'
+            autoCapitalize="none"
             autoCorrect={false}
           />
         </View>
@@ -106,11 +116,11 @@ export default function WalletScreen() {
             onPress={search}
             activeOpacity={0.8}
           >
-          {loading ? (
-            <ActivityIndicator color="#000" />
-          ) : (
-            <Text style={s.btnText}>Search</Text>
-          )}
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={s.btnText}>Search</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity style={s.btnGhost} onPress={tryExample}>
@@ -124,7 +134,7 @@ export default function WalletScreen() {
             <Text style={s.label}>SOL Balance</Text>
             <View style={s.balanceRow}>
               <Text style={s.balance}>{balance.toFixed(4)}</Text>
-              <Text style={s.sol}>SOL</Text>            
+              <Text style={s.sol}>SOL</Text>
             </View>
             <Text style={s.addr}>{short(address.trim(), 6)}</Text>
           </View>
@@ -144,7 +154,6 @@ export default function WalletScreen() {
                   <Text style={s.amount}>{item.amount}</Text>
                 </View>
               )}
-            
             />
           </>
         )}
@@ -153,7 +162,7 @@ export default function WalletScreen() {
         {txns.length > 0 && (
           <>
             <Text style={s.section}>Recent Transaction</Text>
-            <FlatList 
+            <FlatList
               data={txns}
               keyExtractor={(t) => t.sig}
               scrollEnabled={false}
@@ -161,21 +170,23 @@ export default function WalletScreen() {
                 <TouchableOpacity
                   style={s.row}
                   onPress={() => {
-                    Linking.openURL(`https://solscan.io/tx/${item.sig}`)
+                    Linking.openURL(`https://solscan.io/tx/${item.sig}`);
                   }}
                   activeOpacity={0.7}
                 >
                   <View>
                     <Text style={s.mint}>{short(item.sig, 8)}</Text>
-                    <Text style={s.time}>{item.time ? timeAgo(item.time) : "pending"}</Text>
+                    <Text style={s.time}>
+                      {item.time ? timeAgo(item.time) : "pending"}
+                    </Text>
                   </View>
 
                   <Text
                     style={[
                       s.statusIcon,
-                      { color: item.ok ? "#14F195" : "#EF4444"},
+                      { color: item.ok ? "#14F195" : "#EF4444" },
                     ]}
-                    >  
+                  >
                     {item.ok ? "+" : "-"}
                   </Text>
                 </TouchableOpacity>
@@ -183,16 +194,15 @@ export default function WalletScreen() {
             />
           </>
         )}
-
       </ScrollView>
-      </SafeAreaView>
+    </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#0D0D12"
+    backgroundColor: "#0D0D12",
   },
   scroll: {
     flex: 1,
@@ -249,7 +259,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#16161D",
     borderWidth: 1,
-    borderColor: "#2A2A35", 
+    borderColor: "#2A2A35",
   },
   btnGhostText: {
     color: "#9CA3AF",
@@ -270,7 +280,7 @@ const s = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-balanceRow: {
+  balanceRow: {
     flexDirection: "row",
     alignItems: "baseline",
     marginTop: 8,
@@ -329,10 +339,10 @@ balanceRow: {
     color: "#6B7280",
     fontSize: 12,
     marginTop: 4,
-    fontWeight: "400"
+    fontWeight: "400",
   },
   statusIcon: {
     fontSize: 18,
-    fontWeight: "600"
-  }
-})
+    fontWeight: "600",
+  },
+});
