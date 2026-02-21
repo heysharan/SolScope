@@ -26,6 +26,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "backgroundColor": "#0a0a1a"
   }
 }
