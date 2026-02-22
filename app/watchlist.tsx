@@ -1,18 +1,18 @@
-import { useWalletStore } from "@/src/stores/wallet-store";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useWalletStore } from "../src/stores/wallet-store";
 
 interface WatchlistItem {
   address: string;
@@ -34,7 +34,7 @@ export default function WatchlistScreen() {
     : "https://api.mainnet-beta.solana.com";
 
   const fetchBalances = useCallback(async () => {
-    const result = await Promise.all(
+    const results = await Promise.all(
       favorites.map(async (address) => {
         try {
           const res = await fetch(RPC, {
@@ -58,6 +58,7 @@ export default function WatchlistScreen() {
         }
       }),
     );
+    setItems(results);
   }, [favorites, RPC]);
 
   useEffect(() => {
@@ -77,7 +78,8 @@ export default function WatchlistScreen() {
     setRefreshing(false);
   };
 
-  const short = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  const shortenAddress = (addr: string) =>
+    `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -95,9 +97,9 @@ export default function WatchlistScreen() {
         {favorites.length === 0 ? (
           <View style={s.emptyContainer}>
             <Ionicons name="heart-outline" size={64} color="#2A2A35" />
-            <Text style={s.emptyTitle}>No Wallet Saved</Text>
+            <Text style={s.emptyTitle}>No Wallets Saved</Text>
             <Text style={s.emptyText}>
-              Search for a wallet and tap the heart to save it here
+              Search for a wallet and tap the heart to save it here.
             </Text>
           </View>
         ) : (
@@ -117,14 +119,18 @@ export default function WatchlistScreen() {
               <TouchableOpacity
                 style={s.card}
                 onLongPress={() => {
-                  Alert.alert("Remove from Watchlist", short(item.address), [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Remove",
-                      style: "destructive",
-                      onPress: () => removeFavorite(item.address),
-                    },
-                  ]);
+                  Alert.alert(
+                    "Remove from Watchlist?",
+                    shortenAddress(item.address),
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Remove",
+                        style: "destructive",
+                        onPress: () => removeFavorite(item.address),
+                      },
+                    ],
+                  );
                 }}
               >
                 <View style={s.cardLeft}>
@@ -132,7 +138,7 @@ export default function WatchlistScreen() {
                     <Ionicons name="wallet" size={20} color="#14F195" />
                   </View>
                   <Text style={s.cardAddress} numberOfLines={1}>
-                    {short(item.address)}
+                    {shortenAddress(item.address)}
                   </Text>
                 </View>
                 <View style={s.cardRight}>
@@ -140,10 +146,10 @@ export default function WatchlistScreen() {
                     <ActivityIndicator size="small" color="#14F195" />
                   ) : item.balance !== null ? (
                     <Text style={s.cardBalance}>
-                      {item.balance.toFixed(4)} SOL
+                      {item.balance.toFixed(2)} SOL
                     </Text>
                   ) : (
-                    <Text style={s.cardError}></Text>
+                    <Text style={s.cardError}>Error</Text>
                   )}
                 </View>
               </TouchableOpacity>
