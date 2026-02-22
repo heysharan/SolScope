@@ -59,12 +59,12 @@ export default function Settings() {
         {/* Stats Section */}
         <Text style={s.sectionTitle}>Data</Text>
         <View style={s.card}>
-          <TouchableOpacity style={s.row} onPress={() => {}}>
+          <TouchableOpacity style={s.row} onPress={() => router.push("/watchlist")}>
             <View style={s.rowLeft}>
               <View style={s.iconBox}>
                 <Ionicons name="heart" size={20} color="#14F195" />
               </View>
-              <Text style={s.label}>Saved Wallets</Text>
+              <Text style={s.label}>Favorite Wallets</Text>
             </View>
             <View style={s.rowRight}>
               <View style={s.badge}>
