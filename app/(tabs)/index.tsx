@@ -18,6 +18,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useWalletStore } from "@/src/stores/wallet-store";
 import { FavoriteButton } from "@/src/components/FavoriteButton";
+import { useWallet } from "@/src/hooks/useWallet";
+import { ConnectButton } from "@/src/components/ConnectButton";
 
 const short = (s: string, n = 4) => `${s.slice(0, n)}...${s.slice(-n)}`;
 
@@ -40,6 +42,7 @@ export default function WalletScreen() {
   const searchHistory = useWalletStore((s) => s.searchHistory);
   const isDevnet = useWalletStore((s) => s.isDevnet);
   const toggleNetwork = useWalletStore((s) => s.toggleNetwork);
+  const wallet = useWallet();
 
   const RPC = isDevnet
     ? "https://api.devnet.solana.com"
@@ -154,12 +157,21 @@ export default function WalletScreen() {
               <Text style={s.title}>SolScan</Text>
               <Text style={s.subtitle}>Explore any Solana wallet</Text>
             </View>
-            <TouchableOpacity style={s.networkToggle} onPress={toggleNetwork}>
-              <View style={[s.networkDot, isDevnet && s.networkDotDevnet]} />
-              <Text style={s.networkText}>
-                {isDevnet ? "Devnet" : "Mainnet"}
-              </Text>
-            </TouchableOpacity>
+            <View style={s.headerRight}>
+              <TouchableOpacity style={s.networkToggle} onPress={toggleNetwork}>
+                <View style={[s.networkDot, isDevnet && s.networkDotDevnet]} />
+                <Text style={s.networkText}>
+                  {isDevnet ? "Devnet" : "Mainnet"}
+                </Text>
+              </TouchableOpacity>
+              <ConnectButton
+                connected={wallet.connected}
+                connecting={wallet.connecting}
+                publicKey={wallet.publicKey?.toBase58() ?? null}
+                onConnect={wallet.connect}
+                onDisconnect={wallet.disconnect}
+              />
+            </View>
           </View>
 
           <View style={s.inputContainer}>
@@ -314,6 +326,14 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 28,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    maxWidth: 200,
   },
   title: {
     color: "#FFFFFF",
