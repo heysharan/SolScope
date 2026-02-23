@@ -174,6 +174,13 @@ export default function WalletScreen() {
             </View>
           </View>
 
+          {wallet.connected && (
+            <TouchableOpacity style={s.sendNav} onPress={() => router.push("/send")}>
+              <Ionicons name="paper-plane" size={20} color="0a0a1a" />
+              <Text>Send SOL</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={s.inputContainer}>
             <TextInput
               style={s.input}
@@ -529,4 +536,7 @@ const s = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  sendNav: {
+    backgroundColor: "white"
+  }
 });
