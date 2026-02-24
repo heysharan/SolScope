@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -38,10 +38,12 @@ export default function WalletScreen() {
   const [balance, setBalance] = useState<number | null>(null);
   const [tokens, setTokens] = useState<any[]>([]);
   const [txns, setTxns] = useState<any[]>([]);
+
   const addToHistory = useWalletStore((s) => s.addToHistory);
   const searchHistory = useWalletStore((s) => s.searchHistory);
   const isDevnet = useWalletStore((s) => s.isDevnet);
   const toggleNetwork = useWalletStore((s) => s.toggleNetwork);
+
   const wallet = useWallet();
 
   const RPC = isDevnet
@@ -145,6 +147,16 @@ export default function WalletScreen() {
     setTxns([]);
   };
 
+  const prevConnected = useRef(false);
+  useEffect(() => {
+    if (wallet.connected && wallet.publicKey && !prevConnected.current) {
+      const addr = wallet.publicKey.toBase58();
+      setAddress(addr);
+      searchFromHistory(addr);
+    }
+    prevConnected.current = wallet.connected;
+  }, [wallet.connected, wallet.publicKey]);
+
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <KeyboardAvoidingView
@@ -173,13 +185,6 @@ export default function WalletScreen() {
               />
             </View>
           </View>
-
-          {wallet.connected && (
-            <TouchableOpacity style={s.sendNav} onPress={() => router.push("/send")}>
-              <Ionicons name="paper-plane" size={20} color="0a0a1a" />
-              <Text>Send SOL</Text>
-            </TouchableOpacity>
-          )}
 
           <View style={s.inputContainer}>
             <TextInput
@@ -243,6 +248,15 @@ export default function WalletScreen() {
                 <Text style={s.sol}>SOL</Text>
               </View>
               <Text style={s.addr}>{short(address.trim(), 6)}</Text>
+              {wallet.connected && (
+                <TouchableOpacity
+                  style={s.sendNav}
+                  onPress={() => router.push("/send")}
+                >
+                  <Ionicons name="paper-plane" size={20} color="0a0a1a" />
+                  <Text style={s.sendNavText}>Send SOL</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -537,6 +551,19 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   sendNav: {
-    backgroundColor: "white"
-  }
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#14F195",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 20,
+    gap: 8,
+  },
+  sendNavText: {
+    color: "#0D0D12",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });
