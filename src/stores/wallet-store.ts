@@ -43,8 +43,8 @@ export const useWalletStore = create<WalletState>()(
         set((state) => ({
           searchHistory: [
             address,
-            ...state.searchHistory.filter((a) => a !== address).slice(0, 20),
-          ],
+            ...state.searchHistory.filter((a) => a !== address),
+          ].slice(0, 20),
         })),
 
       clearHistory: () => set({ searchHistory: [] }),
@@ -54,7 +54,8 @@ export const useWalletStore = create<WalletState>()(
           isDevnet: !state.isDevnet,
         })),
 
-      setConnectedPublicKey: (publicKey) => set({ connectedPublicKey: publicKey }),  
+      setConnectedPublicKey: (publicKey) =>
+        set({ connectedPublicKey: publicKey }),
     }),
     {
       name: "wallet-storage",

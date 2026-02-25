@@ -1,27 +1,28 @@
-import { useWallet } from "@/src/hooks/useWallet";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Linking,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useWallet } from "@/src/hooks/useWallet";
+import { useWalletStore } from "@/src/stores/wallet-store";
 
 export default function SendScreen() {
   const router = useRouter();
   const wallet = useWallet();
+  const isDevnet = useWalletStore((s) => s.isDevnet);
 
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState("");
-  const [txSignature, setTxSignature] = useState<string | null>(null);
 
   const handleSend = async () => {
     if (!toAddress.trim()) return Alert.alert("Enter a recipient address");
@@ -31,36 +32,41 @@ export default function SendScreen() {
 
     try {
       const sig = await wallet.sendSOL(toAddress.trim(), Number(amount));
-      setTxSignature(sig);
+      const baseUrl = isDevnet
+        ? "https://solscan.io/tx"
+        : "https://solscan.io/tx";
+      const clusterParam = isDevnet ? "?cluster=devnet" : "";
       Alert.alert(
-        "Transaction Send!",
-        `Send ${amount} SOL\nSignature: ${sig.slice(0, 20)}...`,
+        "Transaction Sent!",
+        `Sent ${amount} SOL\nSignature: ${sig.slice(0, 20)}...`,
         [
           {
             text: "View on Solscan",
-            onPress: () => Linking.openURL(`https://solcan.io/tx/${sig}`),
+            onPress: () => Linking.openURL(`${baseUrl}/${sig}${clusterParam}`),
           },
-          { text: "Dine", onPress: () => router.back() },
+          { text: "Done", onPress: () => router.back() },
         ],
       );
-    } catch (error: any) {
-      Alert.alert(
-        "Transaction Failed",
-        error.message || "Something went wrong",
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong";
+      Alert.alert("Transaction Failed", message);
     }
   };
 
   if (!wallet.connected) {
     return (
-      <View style={s.center}>
+      <View style={styles.center}>
         <Ionicons name="wallet-outline" size={64} color="#333" />
-        <Text style={s.emptyTitle}>Wallet Not Connected</Text>
-        <Text style={s.emptyText}>
-          Connect your wallet from the Wallet tab first
+        <Text style={styles.emptyTitle}>Wallet Not Connected</Text>
+        <Text style={styles.emptyText}>
+          Connect your wallet from the Explorer tab first.
         </Text>
-        <TouchableOpacity style={s.backButton} onPress={() => router.back()}>
-          <Text style={s.backButtonText}>Go Back</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -68,29 +74,29 @@ export default function SendScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={s.container}
+      style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={s.header}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.title}>Send SOL</Text>
+        <Text style={styles.title}>Send SOL</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={s.card}>
-        <Text style={s.cardLabel}>From</Text>
-        <Text style={s.cardAddress}>
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>From</Text>
+        <Text style={styles.cardAddress}>
           {wallet.publicKey?.toBase58().slice(0, 8)}...
           {wallet.publicKey?.toBase58().slice(-4)}
         </Text>
       </View>
 
-      <View style={s.inputGroup}>
-        <Text style={s.inputLabel}>Recipient Address</Text>
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Recipient Address</Text>
         <TextInput
-          style={s.input}
+          style={styles.input}
           placeholder="Paste Solana address..."
           placeholderTextColor="#555"
           value={toAddress}
@@ -100,10 +106,10 @@ export default function SendScreen() {
         />
       </View>
 
-      <View style={s.inputGroup}>
-        <Text style={s.inputLabel}>Amount (SOL)</Text>
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Amount (SOL)</Text>
         <TextInput
-          style={s.input}
+          style={styles.input}
           placeholder="0.0"
           placeholderTextColor="#555"
           value={amount}
@@ -113,34 +119,32 @@ export default function SendScreen() {
       </View>
 
       <TouchableOpacity
-        style={[s.sendButton, wallet.sending && s.sendButtonDisabled]}
+        style={[styles.sendButton, wallet.sending && styles.sendButtonDisabled]}
         onPress={handleSend}
         disabled={wallet.sending}
       >
         {wallet.sending ? (
           <ActivityIndicator color="#0a0a1a" />
         ) : (
-          <Text style={s.sendButtonText}>Send SOL</Text>
+          <Text style={styles.sendButtonText}>Send SOL</Text>
         )}
       </TouchableOpacity>
 
-      <Text style={s.feeText}>
-        Network fee: ~0.00005 SOL ($0.001)
-      </Text>
+      <Text style={styles.feeText}>Network fee: ~0.000005 SOL ($0.001)</Text>
     </KeyboardAvoidingView>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0a0a1a",
+    backgroundColor: "#0D0D12",
     padding: 16,
     paddingTop: 60,
   },
   center: {
     flex: 1,
-    backgroundColor: "#0a0a1a",
+    backgroundColor: "#0D0D12",
     justifyContent: "center",
     alignItems: "center",
     padding: 40,
@@ -148,11 +152,11 @@ const s = StyleSheet.create({
   emptyTitle: {
     color: "#fff",
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "700",
     marginTop: 16,
   },
   emptyText: {
-    color: "#666",
+    color: "#6B7280",
     fontSize: 14,
     textAlign: "center",
     marginTop: 8,
@@ -166,16 +170,18 @@ const s = StyleSheet.create({
   title: {
     color: "#fff",
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   card: {
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#16161D",
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#2A2A35",
   },
   cardLabel: {
-    color: "#888",
+    color: "#6B7280",
     fontSize: 12,
     textTransform: "uppercase",
     marginBottom: 4,
@@ -189,19 +195,19 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: "#888",
+    color: "#6B7280",
     fontSize: 12,
     textTransform: "uppercase",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#16161D",
     color: "#fff",
     padding: 16,
     borderRadius: 12,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#2a2a3e",
+    borderColor: "#2A2A35",
   },
   sendButton: {
     backgroundColor: "#14F195",
@@ -210,14 +216,16 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
   },
-  sendButtonDisabled: { opacity: 0.5 },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
   sendButtonText: {
-    color: "#0a0a1a",
+    color: "#0D0D12",
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   feeText: {
-    color: "#555",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
     marginTop: 12,
@@ -231,6 +239,6 @@ const s = StyleSheet.create({
   },
   backButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "600",
   },
 });

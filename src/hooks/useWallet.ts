@@ -46,7 +46,6 @@ export function useWallet() {
   const cluster = isDevnet ? "devnet" : "mainnet-beta";
   const connection = new Connection(clusterApiUrl(cluster), "confirmed");
 
-
   const connect = useCallback(async () => {
     console.log("[useWallet] connect() called, cluster:", cluster);
     setConnecting(true);
@@ -90,13 +89,11 @@ export function useWallet() {
     setConnectedPublicKey(null);
   }, [setConnectedPublicKey]);
 
-
   const getBalance = useCallback(async () => {
     if (!publicKey) return 0;
     const balance = await connection.getBalance(publicKey);
     return balance / LAMPORTS_PER_SOL;
   }, [publicKey, connection]);
-
 
   const sendSOL = useCallback(
     async (toAddress: string, amountSOL: number) => {
@@ -110,7 +107,6 @@ export function useWallet() {
       setSending(true);
 
       try {
-
         console.log("[useWallet] fetching blockhash...");
         const { blockhash, lastValidBlockHeight } =
           await connection.getLatestBlockhash();
@@ -128,7 +124,7 @@ export function useWallet() {
             fromPubkey: publicKey,
             toPubkey: toPublicKey,
             lamports,
-          })
+          }),
         );
         console.log("[useWallet] transaction built");
 
@@ -154,7 +150,7 @@ export function useWallet() {
             }
 
             return signedTxs[0];
-          }
+          },
         );
 
         console.log("[useWallet] transaction signed, waiting before send...");
@@ -178,7 +174,10 @@ export function useWallet() {
             break;
           } catch (err: unknown) {
             lastError = err as Error;
-            console.log(`[useWallet] attempt ${attempt} failed:`, lastError.message);
+            console.log(
+              `[useWallet] attempt ${attempt} failed:`,
+              lastError.message,
+            );
             if (attempt < 3) {
               await new Promise((resolve) => setTimeout(resolve, 1000));
             }
@@ -186,7 +185,10 @@ export function useWallet() {
         }
 
         if (!signature) {
-          throw lastError || new Error("Failed to send transaction after 3 attempts");
+          throw (
+            lastError ||
+            new Error("Failed to send transaction after 3 attempts")
+          );
         }
 
         console.log("[useWallet] confirming transaction...");
@@ -196,12 +198,12 @@ export function useWallet() {
             blockhash,
             lastValidBlockHeight,
           },
-          "confirmed"
+          "confirmed",
         );
 
         if (confirmation.value.err) {
           throw new Error(
-            `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+            `Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
           );
         }
 
@@ -214,7 +216,7 @@ export function useWallet() {
         setSending(false);
       }
     },
-    [publicKey, connection, cluster]
+    [publicKey, connection, cluster],
   );
 
   return {
