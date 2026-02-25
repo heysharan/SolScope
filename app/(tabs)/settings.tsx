@@ -59,7 +59,10 @@ export default function Settings() {
         {/* Stats Section */}
         <Text style={s.sectionTitle}>Data</Text>
         <View style={s.card}>
-          <TouchableOpacity style={s.row} onPress={() => router.push("/watchlist")}>
+          <TouchableOpacity
+            style={s.row}
+            onPress={() => router.push("/watchlist")}
+          >
             <View style={s.rowLeft}>
               <View style={s.iconBox}>
                 <Ionicons name="heart" size={20} color="#14F195" />

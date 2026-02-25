@@ -44,7 +44,7 @@ export default function SendScreen() {
             text: "View on Solscan",
             onPress: () => Linking.openURL(`${baseUrl}/${sig}${clusterParam}`),
           },
-          { text: "Done", onPress: () => router.back() },
+          { text: "Done", onPress: () => router.push("/(tabs)") },
         ],
       );
     } catch (error: unknown) {
