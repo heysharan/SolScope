@@ -1,6 +1,5 @@
 const JUPITER_API = "https://api.jup.ag/swap/v1";
-const JUPITER_API_KEY =
-  process.env.EXPO_PUBLIC_EXPO_PUBLIC_JUPITER_API_KEY || "";
+const JUPITER_API_KEY = process.env.EXPO_PUBLIC_JUPITER_API_KEY || "";
 
 export const TOKENS = {
   SOL: "So11111111111111111111111111111111111111112",
@@ -13,42 +12,42 @@ export const TOKENS = {
 
 export const TOKEN_INFO: Record<
   string,
-  { symbol: string; name: string; decimal: number; color: string }
+  { symbol: string; name: string; decimals: number; color: string }
 > = {
   [TOKENS.SOL]: {
     symbol: "SOL",
     name: "Solana",
-    decimal: 9,
+    decimals: 9,
     color: "#9945FF",
   },
   [TOKENS.USDC]: {
     symbol: "USDC",
     name: "USD Coin",
-    decimal: 6,
+    decimals: 6,
     color: "#2775CA",
   },
   [TOKENS.USDT]: {
     symbol: "USDT",
     name: "Tether",
-    decimal: 6,
+    decimals: 6,
     color: "#26A17B",
   },
   [TOKENS.BONK]: {
     symbol: "BONK",
     name: "Bonk",
-    decimal: 5,
+    decimals: 5,
     color: "#F7931A",
   },
   [TOKENS.JUP]: {
     symbol: "JUP",
     name: "Jupiter",
-    decimal: 6,
+    decimals: 6,
     color: "#14F195",
   },
   [TOKENS.WIF]: {
     symbol: "WIF",
     name: "dogwifhat",
-    decimal: 6,
+    decimals: 6,
     color: "#E91E63",
   },
 };
@@ -62,7 +61,7 @@ export const AVAILABLE_TOKENS = [
   TOKENS.WIF,
 ];
 
-export interface QuoteResponce {
+export interface QuoteResponse {
   inputMint: string;
   inAmount: string;
   outputMint: string;
@@ -71,16 +70,19 @@ export interface QuoteResponce {
   swapMode: string;
   slippageBps: number;
   priceImpactPct: string;
-  routePlan: {
-    ammkey: string;
-    label: string;
-    inputMint: string;
-    outputMint: string;
-    inAmount: string;
-    outAmount: string;
-    feeAmount?: string;
-    feeMint?: string;
-  };
+  routePlan: Array<{
+    swapInfo: {
+      ammKey: string;
+      label: string;
+      inputMint: string;
+      outputMint: string;
+      inAmount: string;
+      outAmount: string;
+      feeAmount?: string;
+      feeMint?: string;
+    };
+    percent: number;
+  }>;
 }
 
 export async function getSwapQuote(
@@ -88,11 +90,12 @@ export async function getSwapQuote(
   outputMint: string,
   amount: number,
   slippageBps: number = 50,
-): Promise<QuoteResponce> {
-  console.log("[jupiter] getSwapQuote called");
+): Promise<QuoteResponse> {
+  console.log("[jupiter] ========== getSwapQuote ==========");
   console.log("[jupiter] inputMint:", inputMint);
   console.log("[jupiter] outputMint:", outputMint);
-  console.log("[jupiter] amount:", amount);
+  console.log("[jupiter] amount (smallest unit):", amount);
+  console.log("[jupiter] slippageBps:", slippageBps, `(${slippageBps / 100}%)`);
 
   const params = new URLSearchParams({
     inputMint,
@@ -103,14 +106,19 @@ export async function getSwapQuote(
 
   const url = `${JUPITER_API}/quote?${params}`;
   console.log("[jupiter] fetching quote from:", url);
+  console.log(
+    "[jupiter] using API key:",
+    JUPITER_API_KEY ? "yes (set)" : "no (missing!)",
+  );
 
   let lastError: Error | null = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
+      console.log(`[jupiter] attempt ${attempt}/3...`);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const responce = await fetch(url, {
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -121,72 +129,110 @@ export async function getSwapQuote(
 
       clearTimeout(timeoutId);
 
-      if (!responce.ok) {
-        const errorText = await responce.text();
-        console.error("[jupiter] quote failed:", responce.status, errorText);
-        throw new Error(`Jupiter quote failed: ${responce.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[jupiter] quote failed:", response.status, errorText);
+        throw new Error(`Jupiter quote failed: ${response.status}`);
       }
 
-      const quote = await responce.json();
-      console.log("[jupiter] quote received, outAmount:", quote.outAmount);
+      const quote = await response.json();
+      console.log("[jupiter] quote received:");
+      console.log("[jupiter]   - inAmount:", quote.inAmount);
+      console.log("[jupiter]   - outAmount:", quote.outAmount);
+      console.log("[jupiter]   - priceImpactPct:", quote.priceImpactPct, "%");
+      console.log("[jupiter]   - routes:", quote.routePlan?.length || 0);
+      if (quote.routePlan?.length > 0) {
+        console.log(
+          "[jupiter]   - route:",
+          quote.routePlan
+            .map((r: { swapInfo: { label: string } }) => r.swapInfo.label)
+            .join(" -> "),
+        );
+      }
+      console.log("[jupiter] ======================================");
       return quote;
     } catch (err) {
       lastError = err as Error;
       console.log(`[jupiter] attempt ${attempt} failed:`, lastError.message);
       if (attempt < 3) {
+        console.log("[jupiter] retrying in 1 second...");
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
   }
 
-  throw lastError || new Error("Failed to get quote after 2 attempts");
+  throw lastError || new Error("Failed to get quote after 3 attempts");
 }
 
 export async function getSwapTransaction(
-  quoteResponce: QuoteResponce,
+  quoteResponse: QuoteResponse,
   userPublicKey: string,
 ): Promise<string> {
-  console.log("[jupiter] getSwapTransaction called");
+  console.log("[jupiter] ========== getSwapTransaction ==========");
   console.log("[jupiter] userPublicKey:", userPublicKey);
+  console.log("[jupiter] quote inAmount:", quoteResponse.inAmount);
+  console.log("[jupiter] quote outAmount:", quoteResponse.outAmount);
+  console.log("[jupiter] slippageBps:", quoteResponse.slippageBps);
 
   const swapUrl = `${JUPITER_API}/swap`;
-  console.log("[jupiter] posting swap toL:", swapUrl);
+  console.log("[jupiter] posting to:", swapUrl);
 
-  const responce = await fetch(swapUrl, {
-    method: "GET",
+  const requestBody = {
+    quoteResponse,
+    userPublicKey,
+    wrapAndUnwrapSol: true,
+    dynamicComputeUnitLimit: true,
+    prioritizationFeeLamports: {
+      priorityLevelWithMaxLamports: {
+        priorityLevel: "high",
+        maxLamports: 1000000,
+      },
+    },
+  };
+
+  console.log("[jupiter] request options:");
+  console.log(
+    "[jupiter]   - wrapAndUnwrapSol: true (auto handle SOL <-> wSOL)",
+  );
+  console.log(
+    "[jupiter]   - dynamicComputeUnitLimit: true (optimize compute units)",
+  );
+  console.log("[jupiter]   - priorityLevel: high (faster tx landing)");
+  console.log(
+    "[jupiter]   - maxLamports: 1000000 (max 0.001 SOL priority fee)",
+  );
+
+  const response = await fetch(swapUrl, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
       "x-api-key": JUPITER_API_KEY,
     },
-    body: JSON.stringify({
-      quoteResponce,
-      userPublicKey,
-      wrapAndUnwrapSol: true,
-      dynamicComputeUnitLimit: true,
-      prioritizationFeeLamports: {
-        priorityLevelWithMaxLamports: {
-          priorityLevel: "high",
-          maxLamports: 1000000,
-        },
-      },
-    }),
+    body: JSON.stringify(requestBody),
   });
 
-  if (!responce.ok) {
-    const errorText = await responce.text();
-    console.error("[jupiter] swap tx failed:", responce.status, errorText);
-    throw new Error(`Jupiter swap failed: ${responce.status}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[jupiter] swap tx failed:", response.status, errorText);
+    throw new Error(`Jupiter swap failed: ${response.status}`);
   }
 
-  const data = await responce.json();
-  console.log("[jupiter] swap transaction received");
+  const data = await response.json();
+  console.log("[jupiter] swap transaction received successfully");
+  console.log("[jupiter] lastValidBlockHeight:", data.lastValidBlockHeight);
+  console.log(
+    "[jupiter] prioritizationFeeLamports:",
+    data.prioritizationFeeLamports,
+  );
+  console.log("[jupiter] ==========================================");
+
   return data.swapTransaction;
 }
 
 export async function getTokenPrice(mintAddress: string): Promise<number> {
   try {
-    const responce = await fetch(
+    const response = await fetch(
       `https://api.jup.ag/price/v2?ids=${mintAddress}`,
       {
         headers: {
@@ -194,7 +240,7 @@ export async function getTokenPrice(mintAddress: string): Promise<number> {
         },
       },
     );
-    const data = await responce.json();
+    const data = await response.json();
     return data.data?.[mintAddress]?.price || 0;
   } catch {
     return 0;

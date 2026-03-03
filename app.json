@@ -17,12 +17,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.SolScope"
+      "package": "com.anonymous.SolScope",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static"
     },
-    "plugins": ["expo-router"],
+    "plugins": ["expo-router", "./plugins/withNetworkSecurityConfig"],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
