@@ -22,7 +22,7 @@ for analyzing Solana wallets**.
 ### Wallet Connection
 
 -   Connect using **Solana Mobile Wallet Adapter**
--   Supports wallets such as **Seeker Wallet**
+-   Supports wallets such as **Seeker Wallet**, **Phantom Wallet** etc.,
 
 ### Token Actions
 
